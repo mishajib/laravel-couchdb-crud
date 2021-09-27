@@ -29,35 +29,38 @@ class CouchDbController extends Controller
     /**
      * Show the form for creating a new resource.
      *
-     * @return \Illuminate\Http\Response
+     * @return int
      */
     public function createDocument()
     {
-        $customer = [
-            'first_name' => 'Akash',
-            'last_name'  => 'Khan',
-            'username'   => 'akash',
-            'email'      => 'akash@gmail.com',
-            'pass'       => 'password',
+        $address = [
+            'address' => 'Uttara, Dhaka - 1230',
+            'city'    => 'Dhaka',
+            'zipcode' => '1230',
+            'user_id' => 'ab42fbabab8ae9f6aa07b14167052b79',
+            'type'    => 'address',
         ];
 
-        $payload = json_encode($customer);
+        $uuid = Http::get($this->url . '_uuids')->json()['uuids'][0];
 
-        $response = Http::withBody($payload, 'json')
-            ->put($this->url . $this->db . '/' . $customer['username']);
+        $payload = json_encode($address);
 
-        return $response->json();
+        $response = Http::withBody($payload, 'application/json')
+            ->put($this->url . $this->db . '/' . $uuid);
+
+        return $response->status();
     }
 
     public function getUUIDs()
     {
         $response = Http::get($this->url . '_uuids');
-        return $response->json();
+//        dd($response->json()['uuids'][0]);
+        return $response->json()['uuids'][0];
     }
 
     public function getDocument()
     {
-        $documentID = 'mishajib';
+        $documentID = 'ab42fbabab8ae9f6aa07b14167052b79';
         $response   = Http::get($this->url . $this->db . '/' . $documentID);
         return $response->json();
     }
@@ -90,8 +93,8 @@ class CouchDbController extends Controller
 
     public function deleteDocument()
     {
-        $documentID = 'akash';
-        $revision   = "1-629e1601f6503cea9f93ed8010692827";
+        $documentID = 'ab42fbabab8ae9f6aa07b1416702ea5e';
+        $revision   = "5-e86d2f893e32ef71ffc54f05d8e8b1d1";
         $response   = Http::delete($this->url . $this->db . '/' . $documentID . '?rev=' . $revision);
         return $response->json();
     }
@@ -103,11 +106,12 @@ class CouchDbController extends Controller
 
         $revision = '3-008f10aa48a31ec720d375cb4b2f77eb';
 
-        $attachment = 'Profile.pdf';
+        $attachment = 'Untitled document.docx';
         $path       = '/home/mishajib/Downloads/';
 
         $fileInfo    = finfo_open(FILEINFO_MIME_TYPE);
         $contentType = finfo_file($fileInfo, $path . $attachment);
+        dd($contentType);
 
         $payload = file_get_contents($path . $attachment);
 
@@ -119,23 +123,28 @@ class CouchDbController extends Controller
 
     public function test()
     {
+
         $documents['docs'] = [
             [
-                "_id"      => "FishStew",
+                "_id"      => Http::get($this->url . '_uuids')->json()['uuids'][0],
                 "servings" => 4,
                 "subtitle" => "Delicious with freshly baked bread",
-                "title"    => "FishStew"
+                "title"    => "FishStew",
+                'type'     => 'bulk',
             ],
             [
-                "_id"      => "LambStew",
+                "_id"      => Http::get($this->url . '_uuids')->json()['uuids'][0],
                 "servings" => 6,
                 "subtitle" => "Serve with a whole meal scone topping",
-                "title"    => "LambStew"
+                "title"    => "LambStew",
+                'type'     => 'bulk',
             ],
             [
+                "_id"      => Http::get($this->url . '_uuids')->json()['uuids'][0],
                 "servings" => 8,
                 "subtitle" => "Hand-made dumplings make a great accompaniment",
-                "title"    => "BeefStew"
+                "title"    => "BeefStew",
+                'type'     => 'bulk',
             ]
         ];
 
@@ -143,12 +152,11 @@ class CouchDbController extends Controller
         $payload = json_encode($documents);
 
         // bulk get
-        /*$response = Http::withBody($payload, 'application/json')
-            ->post($this->url . $this->db . '/_bulk_get');*/
-
-        // bulk insert docs
         $response = Http::withBody($payload, 'application/json')
             ->post($this->url . $this->db . '/_bulk_docs');
+
+        // bulk insert docs
+        /*$response = Http::get($this->url . '/_all_dbs');*/
 
         return $response->json();
     }
@@ -157,12 +165,9 @@ class CouchDbController extends Controller
     {
         $documents = [
             "selector"        => [
-                "serving" => ['$eq' => 4]
+                "type" => ['$eq' => 'user']
             ],
-            "fields"          => ["_id", "_rev", "servings", "title"],
-            "sort"            => [["_id" => "asc"]],
-            "limit"           => 2,
-            "skip"            => 0,
+            "fields"          => ["_id", "first_name", "_rev", "last_name", "type"],
             "execution_stats" => true
         ];
 
